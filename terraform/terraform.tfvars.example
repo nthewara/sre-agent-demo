@@ -1,0 +1,10 @@
+# Copy this file to terraform.tfvars and fill in real values
+# DO NOT commit terraform.tfvars to version control
+
+subscription_id = "00000000-0000-0000-0000-000000000000"
+kvid            = "/subscriptions/00000000-0000-0000-0000-000000000000/resourceGroups/Management/providers/Microsoft.KeyVault/vaults/YOUR-KEYVAULT-NAME"
+prefix          = "sreagent"
+location        = "australiaeast"
+alert_email     = "sre-team@contoso.com"
+aks_node_count  = 3
+aks_vm_size     = "Standard_D2s_v5"
