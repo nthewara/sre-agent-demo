@@ -1,0 +1,242 @@
+<mxfile>
+  <diagram name="SRE Agent Demo Architecture">
+    <mxGraphModel dx="1400" dy="900" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1600" pageHeight="900" math="0" shadow="0">
+      <root>
+        <mxCell id="0"/>
+        <mxCell id="1" parent="0"/>
+
+        <!-- Azure Cloud boundary -->
+        <mxCell id="cloud" value="Azure Cloud" style="rounded=1;dashed=1;dashPattern=5 5;strokeColor=#0078D4;fillColor=#F0F8FF;verticalAlign=top;fontSize=14;fontStyle=1;spacingTop=5;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="40" y="30" width="1520" height="840" as="geometry"/>
+        </mxCell>
+
+        <!-- Resource Group boundary -->
+        <mxCell id="rg" value="Resource Group: sreagent-&lt;suffix&gt;" style="rounded=1;dashed=1;dashPattern=3 3;strokeColor=#505050;fillColor=#FAFAFA;verticalAlign=top;fontSize=12;fontStyle=1;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="60" y="70" width="1480" height="780" as="geometry"/>
+        </mxCell>
+
+        <!-- AKS Cluster Group -->
+        <mxCell id="aksgrp" value="AKS Cluster (3 nodes, D2s_v5)" style="rounded=1;dashed=1;dashPattern=5 5;strokeColor=#326CE5;fillColor=#E8F0FE;verticalAlign=top;fontSize=11;fontStyle=1;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="120" width="580" height="480" as="geometry"/>
+        </mxCell>
+
+        <!-- AKS Icon -->
+        <mxCell id="aks" value="" style="shape=mxgraph.azure2.compute.kubernetes_services;fillColor=#0078D4;fontColor=#FFFFFF;" vertex="1" parent="1">
+          <mxGeometry x="100" y="135" width="40" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Namespace: aks-journal-app -->
+        <mxCell id="ns" value="namespace: aks-journal-app" style="rounded=1;dashed=1;dashPattern=2 2;strokeColor=#326CE5;fillColor=#E3F2FD;verticalAlign=top;fontSize=10;fontStyle=2;spacingTop=3;" vertex="1" parent="1">
+          <mxGeometry x="100" y="190" width="540" height="220" as="geometry"/>
+        </mxCell>
+
+        <!-- Journal App Pods -->
+        <mxCell id="pod1" value="Pod 1&#xa;aks-journal" style="rounded=1;whiteSpace=wrap;fillColor=#326CE5;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="230" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pod2" value="Pod 2&#xa;aks-journal" style="rounded=1;whiteSpace=wrap;fillColor=#326CE5;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="240" y="230" width="100" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="pod3" value="Pod 3&#xa;aks-journal" style="rounded=1;whiteSpace=wrap;fillColor=#326CE5;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="360" y="230" width="100" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- HPA -->
+        <mxCell id="hpa" value="HPA&#xa;3-10 replicas&#xa;CPU 70% / Mem 80%" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="490" y="225" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Service -->
+        <mxCell id="svc" value="Service&#xa;LoadBalancer&#xa;:80 → :3000" style="rounded=1;whiteSpace=wrap;fillColor=#E8F5E9;strokeColor=#4CAF50;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="120" y="320" width="130" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- PDB -->
+        <mxCell id="pdb" value="PDB&#xa;minAvailable: 2" style="rounded=1;whiteSpace=wrap;fillColor=#FCE4EC;strokeColor=#E91E63;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="290" y="320" width="120" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Health Probes -->
+        <mxCell id="probes" value="Probes&#xa;/live (liveness)&#xa;/ready (readiness)&#xa;/health (health check)" style="rounded=1;whiteSpace=wrap;fillColor=#F3E5F5;strokeColor=#9C27B0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="440" y="310" width="170" height="65" as="geometry"/>
+        </mxCell>
+
+        <!-- Container Insights -->
+        <mxCell id="insights" value="Container&#xa;Insights" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="100" y="440" width="100" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Diagnostics -->
+        <mxCell id="diag" value="Diagnostics&#xa;kube-apiserver&#xa;kube-audit&#xa;cluster-autoscaler" style="rounded=1;whiteSpace=wrap;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="220" y="430" width="140" height="65" as="geometry"/>
+        </mxCell>
+
+        <!-- ACR -->
+        <mxCell id="acr" value="" style="shape=mxgraph.azure2.compute.container_registries;fillColor=#0078D4;" vertex="1" parent="1">
+          <mxGeometry x="420" y="445" width="40" height="40" as="geometry"/>
+        </mxCell>
+        <mxCell id="acrlbl" value="ACR&#xa;Container Registry" style="text;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="395" y="490" width="90" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Redis -->
+        <mxCell id="redis" value="" style="shape=mxgraph.azure2.databases.cache_redis;fillColor=#0078D4;" vertex="1" parent="1">
+          <mxGeometry x="740" y="180" width="50" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="redislbl" value="Azure Cache&#xa;for Redis&#xa;(Basic C0, TLS)" style="text;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="705" y="235" width="120" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrows: Pods to Redis -->
+        <mxCell id="e1" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0078D4;strokeWidth=2;" edge="1" source="pod3" target="redis" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Log Analytics -->
+        <mxCell id="law" value="" style="shape=mxgraph.azure2.management_governance.log_analytics_workspaces;fillColor=#0078D4;" vertex="1" parent="1">
+          <mxGeometry x="740" y="340" width="50" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="lawlbl" value="Log Analytics&#xa;Workspace" style="text;fontSize=10;align=center;" vertex="1" parent="1">
+          <mxGeometry x="715" y="395" width="100" height="30" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: Insights to LAW -->
+        <mxCell id="e2" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565C0;strokeWidth=1;dashed=1;" edge="1" source="insights" target="law" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e2b" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#1565C0;strokeWidth=1;dashed=1;" edge="1" source="diag" target="law" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Azure Monitor Group -->
+        <mxCell id="mongrp" value="Azure Monitor" style="rounded=1;dashed=1;dashPattern=5 5;strokeColor=#FF6F00;fillColor=#FFF8E1;verticalAlign=top;fontSize=12;fontStyle=1;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="880" y="120" width="300" height="360" as="geometry"/>
+        </mxCell>
+
+        <!-- Alert Rules -->
+        <mxCell id="alerts" value="Alert Rules" style="rounded=1;whiteSpace=wrap;fillColor=#FF6F00;fontColor=#FFFFFF;fontSize=11;fontStyle=1;" vertex="1" parent="1">
+          <mxGeometry x="920" y="170" width="220" height="30" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="a1" value="⚡ High CPU (&gt;80%)" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="920" y="210" width="100" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="a2" value="⚡ High Memory (&gt;80%)" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="210" width="110" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="a3" value="⚡ Pod Restarts" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="920" y="248" width="100" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="a4" value="⚡ OOMKilled" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#F44336;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="248" width="110" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="a5" value="⚡ Container Errors" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="920" y="286" width="100" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="a6" value="⚡ Redis Conn Errors" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#F44336;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="286" width="110" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="a7" value="⚡ Probe Failures" style="rounded=1;whiteSpace=wrap;fillColor=#FFF3E0;strokeColor=#FF9800;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="920" y="324" width="100" height="28" as="geometry"/>
+        </mxCell>
+        <mxCell id="a8" value="⚡ CrashLoop BackOff" style="rounded=1;whiteSpace=wrap;fillColor=#FFEBEE;strokeColor=#F44336;fontSize=9;" vertex="1" parent="1">
+          <mxGeometry x="1040" y="324" width="110" height="28" as="geometry"/>
+        </mxCell>
+
+        <!-- Action Group -->
+        <mxCell id="ag" value="Action Group&#xa;(Webhook)" style="rounded=1;whiteSpace=wrap;fillColor=#FF6F00;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="970" y="370" width="120" height="40" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: LAW to Monitor -->
+        <mxCell id="e3" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#FF6F00;strokeWidth=2;" edge="1" source="law" target="alerts" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- SRE Agent -->
+        <mxCell id="sregrp" value="" style="rounded=1;strokeColor=#7B1FA2;fillColor=#F3E5F5;strokeWidth=2;" vertex="1" parent="1">
+          <mxGeometry x="1240" y="120" width="280" height="360" as="geometry"/>
+        </mxCell>
+        <mxCell id="srelbl" value="Azure SRE Agent" style="text;fontSize=14;fontStyle=1;fillColor=none;align=center;fontColor=#7B1FA2;" vertex="1" parent="1">
+          <mxGeometry x="1290" y="130" width="180" height="25" as="geometry"/>
+        </mxCell>
+
+        <mxCell id="sre1" value="🔍 Investigate&#xa;Log Analytics queries&#xa;kubectl diagnostics&#xa;Azure Resource Graph" style="rounded=1;whiteSpace=wrap;fillColor=#EDE7F6;strokeColor=#7B1FA2;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="165" width="240" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="sre2" value="🔧 Diagnose&#xa;Root cause analysis&#xa;CPU starvation vs OOMKill&#xa;Credential mismatch detection" style="rounded=1;whiteSpace=wrap;fillColor=#EDE7F6;strokeColor=#7B1FA2;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="235" width="240" height="60" as="geometry"/>
+        </mxCell>
+        <mxCell id="sre3" value="🛠️ Remediate&#xa;Patch deployments&#xa;Scale resources&#xa;Verify recovery" style="rounded=1;whiteSpace=wrap;fillColor=#EDE7F6;strokeColor=#7B1FA2;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="305" width="240" height="55" as="geometry"/>
+        </mxCell>
+        <mxCell id="sre4" value="📋 Follow-up&#xa;GitHub issues / PRs&#xa;Teams notifications&#xa;Jira tickets" style="rounded=1;whiteSpace=wrap;fillColor=#EDE7F6;strokeColor=#7B1FA2;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="1260" y="370" width="240" height="55" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: Action Group to SRE Agent -->
+        <mxCell id="e4" value="Webhook" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7B1FA2;strokeWidth=2;fontSize=9;" edge="1" source="ag" target="sre1" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: SRE Agent back to AKS -->
+        <mxCell id="e5" value="kubectl / Azure CLI" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7B1FA2;strokeWidth=2;dashed=1;fontSize=9;" edge="1" source="sre3" target="aksgrp" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Fault Injection box -->
+        <mxCell id="faults" value="🎯 Fault Injection Scenarios" style="rounded=1;strokeColor=#D32F2F;fillColor=#FFEBEE;verticalAlign=top;fontSize=11;fontStyle=1;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="80" y="640" width="580" height="180" as="geometry"/>
+        </mxCell>
+        <mxCell id="f1" value="1️⃣ Redis Credential Expiry&#xa;Wrong password → degraded state&#xa;→ 500 errors on all CRUD ops" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#D32F2F;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="100" y="680" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="f2" value="2️⃣ CPU Starvation&#xa;5m CPU limit → startup probe timeout&#xa;→ CrashLoopBackOff (exit code 1)" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#D32F2F;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="380" y="680" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="f3" value="3️⃣ OOM Kill&#xa;20Mi memory limit → instant kill&#xa;→ Exit code 137, empty logs" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#D32F2F;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="100" y="745" width="260" height="50" as="geometry"/>
+        </mxCell>
+        <mxCell id="f4" value="4️⃣ CrashLoop&#xa;Bad entrypoint → immediate exit&#xa;→ BackOff events, restart count spikes" style="rounded=1;whiteSpace=wrap;fillColor=#FFFFFF;strokeColor=#D32F2F;fontSize=9;align=left;spacingLeft=5;" vertex="1" parent="1">
+          <mxGeometry x="380" y="745" width="260" height="50" as="geometry"/>
+        </mxCell>
+
+        <!-- Connectors box -->
+        <mxCell id="conngrp" value="Connectors" style="rounded=1;strokeColor=#1565C0;fillColor=#E3F2FD;verticalAlign=top;fontSize=11;fontStyle=1;spacingTop=5;" vertex="1" parent="1">
+          <mxGeometry x="880" y="520" width="640" height="130" as="geometry"/>
+        </mxCell>
+        <mxCell id="gh" value="GitHub&#xa;Issues + PRs" style="rounded=1;whiteSpace=wrap;fillColor=#24292E;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="920" y="560" width="110" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="teams" value="Microsoft&#xa;Teams" style="rounded=1;whiteSpace=wrap;fillColor=#505AC9;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1060" y="560" width="110" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="jira" value="Jira / ServiceNow&#xa;Tickets" style="rounded=1;whiteSpace=wrap;fillColor=#0052CC;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1200" y="560" width="130" height="45" as="geometry"/>
+        </mxCell>
+        <mxCell id="pager" value="PagerDuty&#xa;Incidents" style="rounded=1;whiteSpace=wrap;fillColor=#06AC38;fontColor=#FFFFFF;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="1360" y="560" width="120" height="45" as="geometry"/>
+        </mxCell>
+
+        <!-- Arrow: SRE to connectors -->
+        <mxCell id="e6" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7B1FA2;strokeWidth=1;dashed=1;" edge="1" source="sre4" target="gh" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+        <mxCell id="e7" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#7B1FA2;strokeWidth=1;dashed=1;" edge="1" source="sre4" target="teams" parent="1">
+          <mxGeometry relative="1" as="geometry"/>
+        </mxCell>
+
+        <!-- Permission/Mode labels -->
+        <mxCell id="modes" value="Permission Levels: Reader → Privileged | Run Modes: Review (approval-gated) → Autonomous" style="text;fontSize=10;fontStyle=2;align=left;fillColor=none;fontColor=#505050;" vertex="1" parent="1">
+          <mxGeometry x="880" y="670" width="500" height="20" as="geometry"/>
+        </mxCell>
+
+        <!-- Cost label -->
+        <mxCell id="cost" value="Estimated Cost: ~$8.40/day" style="text;fontSize=11;fontStyle=1;align=center;fillColor=#E8F5E9;strokeColor=#4CAF50;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="80" y="835" width="200" height="25" as="geometry"/>
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
