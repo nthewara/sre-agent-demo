@@ -76,15 +76,18 @@
 
         <!-- ============ MIDDLE-LEFT: REDIS ============ -->
         <mxCell id="redis" value="" style="shape=mxgraph.azure2.databases.cache_redis;fillColor=#0078D4;" vertex="1" parent="1">
-          <mxGeometry x="640" y="195" width="50" height="50" as="geometry"/>
+          <mxGeometry x="640" y="200" width="50" height="50" as="geometry"/>
         </mxCell>
         <mxCell id="redislbl" value="Azure Cache for Redis&#xa;(Basic C0, TLS)" style="text;fontSize=10;align=center;" vertex="1" parent="1">
-          <mxGeometry x="610" y="250" width="110" height="30" as="geometry"/>
+          <mxGeometry x="610" y="255" width="110" height="30" as="geometry"/>
         </mxCell>
 
         <!-- Arrow: Pods to Redis (straight right, no overlap) -->
-        <mxCell id="e1" value="" style="edgeStyle=orthogonalEdgeStyle;strokeColor=#0078D4;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" edge="1" source="pod3" target="redis" parent="1">
-          <mxGeometry relative="1" as="geometry"/>
+        <mxCell id="e1" value="" style="edgeStyle=entityRelationEdgeStyle;strokeColor=#0078D4;strokeWidth=2;exitX=1;exitY=0.5;exitDx=0;exitDy=0;entryX=0;entryY=0.5;entryDx=0;entryDy=0;curved=0;" edge="1" parent="1">
+          <mxGeometry relative="1" as="geometry">
+            <mxPoint x="440" y="225" as="sourcePoint"/>
+            <mxPoint x="640" y="225" as="targetPoint"/>
+          </mxGeometry>
         </mxCell>
 
         <!-- ============ MIDDLE: LOG ANALYTICS ============ -->
