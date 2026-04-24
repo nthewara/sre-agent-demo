@@ -6,8 +6,8 @@
 # SRE Agent should: Check pod events for CrashLoopBackOff, inspect container logs,
 #                   identify the bad command and recommend reverting the deployment
 #
-# Apply:   kubectl apply -f faults/04-crashloop.yaml
-# Restore: kubectl apply -f k8s/deployment.yaml
+# Apply:   ./scripts/inject-fault.sh 4
+# Restore: ./scripts/restore.sh <resource-group> <redis-name>
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -38,7 +38,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: journal
-          image: ${AZURE_CONTAINER_REGISTRY}/aks-journal:${IMAGE_TAG}
+          image: ${CURRENT_IMAGE}
           imagePullPolicy: Always
           command: ["node", "src/nonexistent-file.js"]
           ports:
@@ -104,3 +104,15 @@ spec:
             capabilities:
               drop:
                 - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - aks-journal
+                topologyKey: kubernetes.io/hostname

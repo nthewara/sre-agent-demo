@@ -8,24 +8,12 @@ This directory contains fault injection manifests for demonstrating Azure SRE Ag
 
 **File:** `01-redis-credential-expiry.yaml`
 
-**What it does:** Overwrites the `redis-secret` Kubernetes Secret with an intentionally wrong Redis password (`WRONG_EXPIRED_KEY_12345`), simulating a Redis key rotation where the application wasn't updated.
-
-**What breaks:**
-- Redis authentication fails with `WRONGPASS` errors
-- App health checks return `503 degraded`
-- Readiness probes fail → pods marked NotReady
-
-**Alerts that fire:**
-- Redis Connection Errors (Sev 1)
-- Probe Failures (Sev 2)
-- Pods Not Ready (Sev 1)
-- Container Errors (Sev 2)
+**What it does:** Overwrites the `redis-secret` Kubernetes Secret with an intentionally wrong Redis password, simulating a Redis key rotation where the application was not updated.
 
 **Expected SRE Agent behaviour:**
-1. Detects Redis `WRONGPASS` errors in container logs
-2. Correlates with the `redis-secret` Kubernetes Secret
-3. Suggests updating the secret with current Redis access keys
-4. May recommend rolling restart after secret update
+1. Detects `WRONGPASS` errors in container logs
+2. Correlates them with `redis-secret`
+3. Suggests updating the secret with the current Redis access key
 
 ---
 
@@ -33,23 +21,12 @@ This directory contains fault injection manifests for demonstrating Azure SRE Ag
 
 **File:** `02-cpu-starvation.yaml`
 
-**What it does:** Redeploys the app with a CPU limit of `5m` (5 millicores) — far too low for Node.js to start.
-
-**What breaks:**
-- Container can't complete startup within probe deadlines
-- Massive CPU throttling
-- Pods enter CrashLoopBackOff
-
-**Alerts that fire:**
-- High CPU (Sev 2)
-- Pod Restarts (Sev 3)
-- Probe Failures (Sev 2)
-- BackOff Events (Sev 1)
+**What it does:** Redeploys the app with a CPU limit of `5m`.
 
 **Expected SRE Agent behaviour:**
-1. Identifies CPU throttling from Container Insights metrics
-2. Correlates with the deployment's resource limits
-3. Recommends increasing CPU limits (e.g., to 500m)
+1. Identifies CPU throttling from metrics
+2. Correlates it with deployment resource limits
+3. Recommends increasing CPU requests/limits
 
 ---
 
@@ -57,22 +34,12 @@ This directory contains fault injection manifests for demonstrating Azure SRE Ag
 
 **File:** `03-oom-kill.yaml`
 
-**What it does:** Redeploys the app with a memory limit of `20Mi` — Node.js needs ~60-80Mi minimum.
-
-**What breaks:**
-- Container gets OOMKilled by the kernel immediately after startup
-- Pods enter CrashLoopBackOff
-
-**Alerts that fire:**
-- OOMKilled (Sev 1)
-- Pod Restarts (Sev 3)
-- BackOff Events (Sev 1)
-- Pods Not Ready (Sev 1)
+**What it does:** Redeploys the app with a memory limit of `20Mi`.
 
 **Expected SRE Agent behaviour:**
-1. Finds OOMKilled events in KubeEvents
-2. Checks container memory working set vs limits
-3. Recommends increasing memory limits (e.g., to 512Mi)
+1. Finds OOMKilled events
+2. Checks memory working set versus limits
+3. Recommends increasing memory limits
 
 ---
 
@@ -80,22 +47,90 @@ This directory contains fault injection manifests for demonstrating Azure SRE Ag
 
 **File:** `04-crashloop.yaml`
 
-**What it does:** Overrides the container command to `node src/nonexistent-file.js`, causing immediate exit with `MODULE_NOT_FOUND`.
-
-**What breaks:**
-- Container exits instantly on every start
-- Kubernetes restarts it, entering CrashLoopBackOff
-
-**Alerts that fire:**
-- Pod Restarts (Sev 3)
-- BackOff Events (Sev 1)
-- Container Errors (Sev 2)
-- Pods Not Ready (Sev 1)
+**What it does:** Overrides the container command to `node src/nonexistent-file.js`.
 
 **Expected SRE Agent behaviour:**
-1. Reads container logs showing `MODULE_NOT_FOUND` error
-2. Identifies the bad `command` override in the deployment spec
-3. Recommends removing the command override or reverting to the previous deployment
+1. Reads container logs showing `MODULE_NOT_FOUND`
+2. Identifies the bad `command` override
+3. Recommends reverting the deployment
+
+---
+
+### 05 — ImagePullBackOff
+
+**File:** `05-image-pull-backoff.yaml`
+
+**What it does:** Redeploys the app with a non-existent image tag.
+
+**Expected SRE Agent behaviour:**
+1. Reads image pull failure events
+2. Identifies the invalid image reference
+3. Recommends restoring the last known good image
+
+---
+
+### 06 — Pending Pods
+
+**File:** `06-pending-pods.yaml`
+
+**What it does:** Deploys oversized placeholder pods requesting `32Gi` memory and `8` CPU.
+
+**Expected SRE Agent behaviour:**
+1. Finds `FailedScheduling` events
+2. Compares requests against node capacity
+3. Recommends reducing requests or scaling the cluster
+
+---
+
+### 07 — Probe Failure
+
+**File:** `07-probe-failure.yaml`
+
+**What it does:** Redeploys the app with invalid liveness and readiness probe paths.
+
+**Expected SRE Agent behaviour:**
+1. Detects probe failures in pod events
+2. Inspects the deployment health probe config
+3. Recommends restoring valid probe paths
+
+---
+
+### 08 — Missing ConfigMap
+
+**File:** `08-missing-config.yaml`
+
+**What it does:** Redeploys the app with an envFrom reference to `journal-config-missing`.
+
+**Expected SRE Agent behaviour:**
+1. Finds `CreateContainerConfigError` and missing ConfigMap events
+2. Locates the bad reference in the deployment spec
+3. Recommends switching back to `journal-config`
+
+---
+
+### 09 — Service Selector Mismatch
+
+**File:** `09-service-mismatch.yaml`
+
+**What it does:** Changes the `aks-journal` service selectors so they no longer match healthy pods.
+
+**Expected SRE Agent behaviour:**
+1. Notices pods are healthy but traffic still fails
+2. Checks service selectors and endpoints
+3. Identifies the selector mismatch as the root cause
+
+---
+
+### 10 — Network Block
+
+**File:** `10-network-block.yaml`
+
+**What it does:** Applies a deny-all egress `NetworkPolicy` to the journal pods.
+
+**Expected SRE Agent behaviour:**
+1. Detects Redis connectivity failures and degraded readiness
+2. Enumerates NetworkPolicies in the namespace
+3. Identifies the restrictive egress policy
 
 ---
 
@@ -105,15 +140,36 @@ This directory contains fault injection manifests for demonstrating Azure SRE Ag
 # Inject a specific fault
 ./scripts/inject-fault.sh <number> [redis-host]
 
-# Example: inject fault 01
+# Examples
 ./scripts/inject-fault.sh 1 myredis.redis.cache.windows.net
+./scripts/inject-fault.sh 5
+./scripts/inject-fault.sh 10
 
 # Restore to healthy state
-./scripts/restore.sh <resource-group> <redis-name>
+RG=$(cd terraform && terraform output -raw resource_group_name)
+REDIS=$(cd terraform && terraform output -raw redis_name)
+./scripts/restore.sh "$RG" "$REDIS"
 ```
 
-## Tips
+## Notes
 
-- Wait 5-10 minutes after injecting a fault for alerts to fire
-- Use `./scripts/load-generator.sh` to increase traffic and accelerate alert triggers
-- Monitor the SRE Agent dashboard at [sre.azure.com](https://sre.azure.com) for automated investigations
+- Run one scenario at a time
+- Always restore before the next scenario
+- `inject-fault.sh` stores the current healthy image so `restore.sh` can recover even after an `ImagePullBackOff`
+- `restore.sh` also cleans up extra objects created by pending-pod and network-policy scenarios
+
+---
+
+### 11 — MongoDB Down (Cascading Dependency Failure)
+
+**File:** `11-mongodb-down.yaml`
+
+**What it does:** Scales the in-cluster `mongodb` deployment to 0 replicas.
+
+**Expected SRE Agent behaviour:**
+1. Detects that order-processor pods are NotReady but not crashing
+2. Reads connection error logs from order-processor
+3. Traces the dependency to the `mongodb` Kubernetes service
+4. Finds 0 replicas on the `mongodb` deployment
+5. Recommends scaling it back to 1
+

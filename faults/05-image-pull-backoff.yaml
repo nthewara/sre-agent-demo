@@ -1,12 +1,12 @@
-# Fault Scenario 03: OOM Kill
-# Deploys the app with extremely low memory limits (20Mi) causing OOMKill
+# Fault Scenario 05: ImagePullBackOff
+# Deploys the app with a non-existent image tag
 #
-# What breaks: Node.js process exceeds 20Mi and gets killed by the kernel
-# Alerts that fire: OOMKilled, Pod Restarts, BackOff Events, Pods Not Ready
-# SRE Agent should: Find OOMKilled events, check container memory usage,
-#                   recommend increasing memory limits
+# What breaks: Kubelet cannot pull the container image
+# Alerts that fire: Image pull failures, Pods Not Ready, BackOff/Failed events
+# SRE Agent should: Inspect pod events and deployment image references,
+#                   identify the invalid image tag, and recommend reverting it
 #
-# Apply:   ./scripts/inject-fault.sh 3
+# Apply:   ./scripts/inject-fault.sh 5
 # Restore: ./scripts/restore.sh <resource-group> <redis-name>
 apiVersion: apps/v1
 kind: Deployment
@@ -38,7 +38,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: journal
-          image: ${CURRENT_IMAGE}
+          image: ${BROKEN_IMAGE}
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -76,10 +76,10 @@ spec:
                   key: REDIS_PASSWORD
           resources:
             requests:
-              memory: "10Mi"
+              memory: "128Mi"
               cpu: "100m"
             limits:
-              memory: "20Mi"
+              memory: "512Mi"
               cpu: "500m"
           livenessProbe:
             httpGet:

@@ -1,0 +1,30 @@
+# Fault Scenario 11: MongoDB Down (Cascading Dependency Failure)
+# Scales MongoDB to 0 replicas — order-processor health degrades because it cannot reach its database
+#
+# What breaks: MongoDB goes offline, order-processor readiness fails, orders cannot be stored
+# Alerts that fire: Pods Not Ready, health check failures, connection error logs
+# SRE Agent should: Notice order-processor pods are NotReady but not crashing,
+#                   trace the upstream dependency to MongoDB,
+#                   identify that MongoDB has 0 replicas as the root cause,
+#                   and recommend scaling it back to 1
+#
+# Apply:   ./scripts/inject-fault.sh 11
+# Restore: ./scripts/restore.sh <resource-group> <redis-name>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mongodb
+  namespace: aks-journal-app
+spec:
+  replicas: 0
+  selector:
+    matchLabels:
+      app: mongodb
+  template:
+    metadata:
+      labels:
+        app: mongodb
+    spec:
+      containers:
+        - name: mongodb
+          image: mongo:7

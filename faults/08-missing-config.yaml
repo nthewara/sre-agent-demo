@@ -1,12 +1,12 @@
-# Fault Scenario 03: OOM Kill
-# Deploys the app with extremely low memory limits (20Mi) causing OOMKill
+# Fault Scenario 08: Missing ConfigMap
+# Deploys the app with a ConfigMap reference that does not exist
 #
-# What breaks: Node.js process exceeds 20Mi and gets killed by the kernel
-# Alerts that fire: OOMKilled, Pod Restarts, BackOff Events, Pods Not Ready
-# SRE Agent should: Find OOMKilled events, check container memory usage,
-#                   recommend increasing memory limits
+# What breaks: Pods cannot start because configuration cannot be loaded
+# Alerts that fire: CreateContainerConfigError, Pods Not Ready, Failed events
+# SRE Agent should: Inspect pod events and deployment envFrom/config references,
+#                   identify the missing ConfigMap, and recommend restoring the reference
 #
-# Apply:   ./scripts/inject-fault.sh 3
+# Apply:   ./scripts/inject-fault.sh 8
 # Restore: ./scripts/restore.sh <resource-group> <redis-name>
 apiVersion: apps/v1
 kind: Deployment
@@ -45,7 +45,7 @@ spec:
               protocol: TCP
           envFrom:
             - configMapRef:
-                name: journal-config
+                name: journal-config-missing
           env:
             - name: POD_NAME
               valueFrom:
@@ -76,10 +76,10 @@ spec:
                   key: REDIS_PASSWORD
           resources:
             requests:
-              memory: "10Mi"
+              memory: "128Mi"
               cpu: "100m"
             limits:
-              memory: "20Mi"
+              memory: "512Mi"
               cpu: "500m"
           livenessProbe:
             httpGet:

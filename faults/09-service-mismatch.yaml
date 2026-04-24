@@ -1,0 +1,43 @@
+# Fault Scenario 09: Service Selector Mismatch
+# Replaces the Service selectors with labels that do not exist on the healthy pods
+#
+# What breaks: Pods stay healthy, but Services have zero endpoints so traffic blackholes
+# Alerts that fire: Probe/readiness symptoms under load, failed requests, service health degradation
+# SRE Agent should: Compare Service selectors to pod labels,
+#                   identify the endpoint mismatch, and recommend restoring the Service definition
+#
+# Apply:   ./scripts/inject-fault.sh 9
+# Restore: ./scripts/restore.sh <resource-group> <redis-name>
+apiVersion: v1
+kind: Service
+metadata:
+  name: aks-journal
+  namespace: aks-journal-app
+  labels:
+    app: aks-journal
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 80
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: aks-journal-broken
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: aks-journal-internal
+  namespace: aks-journal-app
+  labels:
+    app: aks-journal
+spec:
+  type: ClusterIP
+  ports:
+    - port: 3000
+      targetPort: 3000
+      protocol: TCP
+      name: http
+  selector:
+    app: aks-journal-broken

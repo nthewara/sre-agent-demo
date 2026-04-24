@@ -39,15 +39,7 @@ REDIS_HOST=$(cd terraform && terraform output -raw redis_hostname)
 3. Readiness probes fail → pods marked NotReady
 4. Load generator requests start getting 503s
 
-### Alerts (within 5-10 min)
-
-- ⚠️ Redis Connection Errors (Sev 1)
-- ⚠️ Probe Failures (Sev 2)
-- ⚠️ Pods Not Ready (Sev 1)
-
 ### Expected SRE Agent Investigation
-
-<!-- Screenshot placeholder: SRE Agent investigation for Redis credential failure -->
 
 1. Agent detects `WRONGPASS` in container logs
 2. Correlates with Redis secret configuration
@@ -57,7 +49,8 @@ REDIS_HOST=$(cd terraform && terraform output -raw redis_hostname)
 
 ```bash
 RG=$(cd terraform && terraform output -raw resource_group_name)
-./scripts/restore.sh "$RG" "redis-sreagent-XXXX"
+REDIS=$(cd terraform && terraform output -raw redis_name)
+./scripts/restore.sh "$RG" "$REDIS"
 ```
 
 ---
@@ -75,19 +68,11 @@ RG=$(cd terraform && terraform output -raw resource_group_name)
 ### What Happens
 
 1. Deployment rolls out with 5m CPU limit
-2. Node.js can't initialise within probe timeouts
+2. Node.js cannot initialise within probe timeouts
 3. Pods enter CrashLoopBackOff
-4. HPA may try to scale up (won't help)
-
-### Alerts (within 5-10 min)
-
-- ⚠️ High CPU (Sev 2)
-- ⚠️ Pod Restarts (Sev 3)
-- ⚠️ BackOff Events (Sev 1)
+4. HPA may try to scale up, but it will not fix throttling
 
 ### Expected SRE Agent Investigation
-
-<!-- Screenshot placeholder: SRE Agent investigation for CPU starvation -->
 
 1. Agent identifies CPU throttling in Container Insights
 2. Correlates with deployment resource spec
@@ -96,7 +81,7 @@ RG=$(cd terraform && terraform output -raw resource_group_name)
 ### Restore
 
 ```bash
-kubectl apply -f k8s/deployment.yaml
+./scripts/restore.sh "$RG" "$REDIS"
 ```
 
 ---
@@ -113,19 +98,11 @@ kubectl apply -f k8s/deployment.yaml
 
 ### What Happens
 
-1. Node.js starts, allocates >20Mi during import phase
+1. Node.js starts, allocates more than 20Mi during startup
 2. Kernel OOMKills the container
 3. Immediate restart → OOMKill → CrashLoopBackOff
 
-### Alerts (within 5-10 min)
-
-- 🔴 OOMKilled (Sev 1)
-- ⚠️ Pod Restarts (Sev 3)
-- 🔴 BackOff Events (Sev 1)
-
 ### Expected SRE Agent Investigation
-
-<!-- Screenshot placeholder: SRE Agent investigation for OOMKill -->
 
 1. Agent finds OOMKilled events in KubeEvents
 2. Checks container memory working set vs limits
@@ -134,7 +111,7 @@ kubectl apply -f k8s/deployment.yaml
 ### Restore
 
 ```bash
-kubectl apply -f k8s/deployment.yaml
+./scripts/restore.sh "$RG" "$REDIS"
 ```
 
 ---
@@ -155,15 +132,7 @@ kubectl apply -f k8s/deployment.yaml
 2. Node.js throws `MODULE_NOT_FOUND` and exits
 3. Kubernetes restarts → same error → CrashLoopBackOff
 
-### Alerts (within 5-10 min)
-
-- ⚠️ Container Errors (Sev 2)
-- ⚠️ Pod Restarts (Sev 3)
-- 🔴 BackOff Events (Sev 1)
-
 ### Expected SRE Agent Investigation
-
-<!-- Screenshot placeholder: SRE Agent investigation for CrashLoop -->
 
 1. Agent reads container logs showing `MODULE_NOT_FOUND`
 2. Identifies the `command` override in deployment spec
@@ -172,14 +141,315 @@ kubectl apply -f k8s/deployment.yaml
 ### Restore
 
 ```bash
-kubectl apply -f k8s/deployment.yaml
+./scripts/restore.sh "$RG" "$REDIS"
 ```
 
 ---
 
+## Scenario 5: ImagePullBackOff
+
+**Story:** A deployment update referenced a non-existent image tag.
+
+### Inject
+
+```bash
+./scripts/inject-fault.sh 5
+```
+
+### What Happens
+
+1. New pods are scheduled
+2. Kubelet fails to pull the image
+3. Pods remain in `ImagePullBackOff`
+
+### What to Observe
+
+```bash
+kubectl get pods -n aks-journal-app
+kubectl describe pod -n aks-journal-app -l app=aks-journal | grep -A 10 -E 'Failed|Pull|Image'
+```
+
+### Expected SRE Agent Investigation
+
+1. Agent finds failed image pull events
+2. Compares current deployment image to the known-good tag
+3. Recommends reverting the image reference
+
+### Restore
+
+```bash
+./scripts/restore.sh "$RG" "$REDIS"
+```
+
+---
+
+## Scenario 6: Pending Pods
+
+**Story:** A new workload was deployed with requests larger than any node in the cluster can satisfy.
+
+### Inject
+
+```bash
+./scripts/inject-fault.sh 6
+```
+
+### What Happens
+
+1. `resource-hog` pods are created
+2. Scheduler cannot place them on any node
+3. Pods remain `Pending`
+
+### What to Observe
+
+```bash
+kubectl get pods -n aks-journal-app
+kubectl describe pod -n aks-journal-app -l app=resource-hog | grep -A 10 FailedScheduling
+```
+
+### Expected SRE Agent Investigation
+
+1. Agent inspects `FailedScheduling` events
+2. Compares requested CPU/memory to node capacity
+3. Recommends reducing resource requests or scaling the node pool
+
+### Restore
+
+```bash
+./scripts/restore.sh "$RG" "$REDIS"
+```
+
+---
+
+## Scenario 7: Probe Failure
+
+**Story:** A deployment change pointed readiness and liveness probes to the wrong paths.
+
+### Inject
+
+```bash
+./scripts/inject-fault.sh 7
+```
+
+### What Happens
+
+1. Container process starts normally
+2. Liveness and readiness probes hit invalid endpoints
+3. Pods cycle through restarts and never become Ready
+
+### What to Observe
+
+```bash
+kubectl get pods -n aks-journal-app
+kubectl describe pod -n aks-journal-app -l app=aks-journal | grep -A 10 -E 'Liveness|Readiness'
+```
+
+### Expected SRE Agent Investigation
+
+1. Agent identifies probe failures from events
+2. Reads the deployment probe configuration
+3. Recommends restoring `/live` and `/ready`
+
+### Restore
+
+```bash
+./scripts/restore.sh "$RG" "$REDIS"
+```
+
+---
+
+## Scenario 8: Missing ConfigMap
+
+**Story:** A deployment started referencing a ConfigMap that was never created.
+
+### Inject
+
+```bash
+./scripts/inject-fault.sh 8
+```
+
+### What Happens
+
+1. Pods are created
+2. Kubelet fails container setup because `journal-config-missing` does not exist
+3. Pods show `CreateContainerConfigError`
+
+### What to Observe
+
+```bash
+kubectl get pods -n aks-journal-app
+kubectl describe pod -n aks-journal-app -l app=aks-journal | grep -A 10 -E 'ConfigMap|CreateContainerConfigError'
+```
+
+### Expected SRE Agent Investigation
+
+1. Agent finds missing ConfigMap errors in events
+2. Checks the deployment envFrom reference
+3. Recommends restoring the valid `journal-config` reference
+
+### Restore
+
+```bash
+./scripts/restore.sh "$RG" "$REDIS"
+```
+
+---
+
+## Scenario 9: Service Selector Mismatch
+
+**Story:** A service selector was changed during a refactor, but the pods were never relabeled.
+
+### Inject
+
+```bash
+./scripts/inject-fault.sh 9
+```
+
+### What Happens
+
+1. Pods remain healthy and Ready
+2. The `aks-journal` service has zero endpoints
+3. Requests to the app fail even though the deployment looks fine
+
+### What to Observe
+
+```bash
+kubectl get pods -n aks-journal-app --show-labels
+kubectl get endpoints -n aks-journal-app aks-journal aks-journal-internal
+kubectl get svc -n aks-journal-app aks-journal -o jsonpath='{.spec.selector}'
+```
+
+### Expected SRE Agent Investigation
+
+1. Agent sees that pod health is normal
+2. Checks service selectors and endpoints
+3. Identifies the selector mismatch as the real root cause
+
+### Restore
+
+```bash
+./scripts/restore.sh "$RG" "$REDIS"
+```
+
+---
+
+## Scenario 10: Network Block
+
+**Story:** A security policy rollout accidentally denied all egress from the application pods.
+
+### Inject
+
+```bash
+./scripts/inject-fault.sh 10
+```
+
+### What Happens
+
+1. The journal pods keep running
+2. They can no longer connect to Redis
+3. `/health` becomes degraded and readiness fails
+
+### What to Observe
+
+```bash
+kubectl get networkpolicy -n aks-journal-app
+kubectl describe networkpolicy deny-all-egress -n aks-journal-app
+curl "http://${APP_IP}/health"
+```
+
+### Expected SRE Agent Investigation
+
+1. Agent detects Redis connectivity failures
+2. Enumerates NetworkPolicies in the namespace
+3. Identifies the deny-all egress rule as the breakage
+
+### Restore
+
+```bash
+./scripts/restore.sh "$RG" "$REDIS"
+```
+
+---
+
+## Demo Flow Suggestions
+
+### Quick Demo (5-7 minutes)
+
+1. Start with **OOM Kill** or **CrashLoop**
+2. Show pods failing in `kubectl`
+3. Ask SRE Agent for diagnosis
+4. Restore and confirm the cluster recovers
+
+### Intermediate Demo (10-15 minutes)
+
+1. **ImagePullBackOff** — deployment/runtime issue
+2. **Probe Failure** — config issue
+3. **Pending Pods** — scheduler/capacity issue
+4. **Restore** and show clean recovery
+
+### Advanced Demo (15-20 minutes)
+
+1. **Service Selector Mismatch** — subtle, healthy pods but broken traffic
+2. **Network Block** — policy-related dependency failure
+3. **Redis Credential Expiry** — secret drift / dependency auth failure
+4. Ask SRE Agent to compare symptoms and root causes across the incidents
+
 ## Tips
 
-- Run scenarios one at a time and **always restore** before injecting the next fault
+- Run scenarios one at a time and always restore before the next one
 - The load generator helps alerts fire faster by generating more data points
-- Check the SRE Agent dashboard at [sre.azure.com](https://sre.azure.com) for investigation timelines
-- Container Insights data has a ~5 minute ingestion delay
+- Service mismatch and network policy demos are especially good for showing that not all incidents come from crashing pods
+- The inject script saves the last known healthy image so restore still works after image-based failures
+- Container Insights data usually has a small ingestion delay
+
+---
+
+## Scenario 11: MongoDB Down (Cascading Dependency Failure)
+
+**Story:** The MongoDB deployment was accidentally scaled to zero during a "cost saving" change. The order-processor service keeps running but can no longer write or read orders.
+
+### Inject
+
+```bash
+./scripts/inject-fault.sh 11
+```
+
+### What Happens
+
+1. MongoDB is scaled to 0 replicas
+2. The order-processor's ping loop detects connection loss within ~3s
+3. `/ready` returns 503 → pods are marked NotReady
+4. Existing journal app pods remain healthy (different dependency)
+
+### What to Observe
+
+```bash
+# MongoDB has 0 replicas
+kubectl get deployment mongodb -n aks-journal-app
+
+# order-processor pods NotReady
+kubectl get pods -n aks-journal-app
+
+# Connection error logs
+kubectl logs -n aks-journal-app -l app=order-processor --tail=20
+```
+
+### Expected SRE Agent Investigation
+
+1. Agent notices order-processor pods are NotReady but not crashing
+2. Reads container logs and finds "MongoDB not connected" errors
+3. Checks the `MONGODB_URL` env var — resolves to in-cluster `mongodb` service
+4. Finds that the `mongodb` deployment has 0 replicas
+5. Recommends scaling MongoDB back to 1
+
+**SRE Agent prompts:**
+- "Why is order-processor NotReady but not crashing?"
+- "Trace the dependency chain for the order-processor service"
+- "What's preventing order-processor from becoming healthy?"
+- "Scale the mongodb deployment back to 1 replica"
+
+### Restore
+
+```bash
+./scripts/restore.sh "$RG" "$REDIS"
+```
+

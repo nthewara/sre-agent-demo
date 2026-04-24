@@ -1,12 +1,12 @@
 # Fault Scenario 02: CPU Starvation
-# Deploys the app with extremely low CPU limits (5m) so it can't start
+# Deploys the app with extremely low CPU limits (5m) so it can't start reliably
 #
 # What breaks: App can't complete startup within probe deadlines
 # Alerts that fire: High CPU, Pod Restarts, Probe Failures, BackOff Events
 # SRE Agent should: Identify CPU throttling in metrics, recommend increasing CPU limits
 #
-# Apply:   kubectl apply -f faults/02-cpu-starvation.yaml
-# Restore: kubectl apply -f k8s/deployment.yaml
+# Apply:   ./scripts/inject-fault.sh 2
+# Restore: ./scripts/restore.sh <resource-group> <redis-name>
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -37,7 +37,7 @@ spec:
         fsGroup: 1001
       containers:
         - name: journal
-          image: ${AZURE_CONTAINER_REGISTRY}/aks-journal:${IMAGE_TAG}
+          image: ${CURRENT_IMAGE}
           imagePullPolicy: Always
           ports:
             - containerPort: 3000
@@ -102,3 +102,15 @@ spec:
             capabilities:
               drop:
                 - ALL
+      affinity:
+        podAntiAffinity:
+          preferredDuringSchedulingIgnoredDuringExecution:
+            - weight: 100
+              podAffinityTerm:
+                labelSelector:
+                  matchExpressions:
+                    - key: app
+                      operator: In
+                      values:
+                        - aks-journal
+                topologyKey: kubernetes.io/hostname

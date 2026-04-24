@@ -1,0 +1,37 @@
+# Fault Scenario 06: Pending Pods
+# Deploys oversized placeholder pods that the current AKS node pool cannot schedule
+#
+# What breaks: Additional pods stay Pending because requested resources exceed node capacity
+# Alerts that fire: FailedScheduling events, pending pod count, possible node pressure warnings
+# SRE Agent should: Inspect scheduling events, compare requests vs available capacity,
+#                   and recommend resizing requests or scaling the cluster
+#
+# Apply:   ./scripts/inject-fault.sh 6
+# Restore: ./scripts/restore.sh <resource-group> <redis-name>
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: resource-hog
+  namespace: aks-journal-app
+  labels:
+    app: resource-hog
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: resource-hog
+  template:
+    metadata:
+      labels:
+        app: resource-hog
+    spec:
+      containers:
+        - name: pause
+          image: registry.k8s.io/pause:3.9
+          resources:
+            requests:
+              memory: "32Gi"
+              cpu: "8"
+            limits:
+              memory: "32Gi"
+              cpu: "8"

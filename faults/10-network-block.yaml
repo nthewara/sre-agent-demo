@@ -1,0 +1,22 @@
+# Fault Scenario 10: Network Block
+# Denies all outbound traffic from the journal pods
+#
+# What breaks: The app keeps running but cannot reach Redis or external dependencies
+# Alerts that fire: Redis connection errors, pods not ready, degraded health checks
+# SRE Agent should: Inspect NetworkPolicy objects and app connectivity,
+#                   identify the deny-all egress policy, and recommend removing or narrowing it
+#
+# Apply:   ./scripts/inject-fault.sh 10
+# Restore: ./scripts/restore.sh <resource-group> <redis-name>
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: deny-all-egress
+  namespace: aks-journal-app
+spec:
+  podSelector:
+    matchLabels:
+      app: aks-journal
+  policyTypes:
+    - Egress
+  egress: []

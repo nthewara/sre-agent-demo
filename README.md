@@ -1,6 +1,6 @@
 # Azure SRE Agent Demo — AKS Journal App
 
-Demonstrate [Azure SRE Agent](https://sre.azure.com) investigating and diagnosing Kubernetes incidents in real-time using a purpose-built journal application with fault injection scenarios.
+Demonstrate [Azure SRE Agent](https://sre.azure.com) investigating and diagnosing Kubernetes incidents in real time using a purpose-built journal application with fault injection scenarios.
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
@@ -39,10 +39,21 @@ Demonstrate [Azure SRE Agent](https://sre.azure.com) investigating and diagnosin
 
 ## What This Demo Shows
 
-1. **Redis Credential Expiry** — Simulate key rotation without app update; SRE Agent identifies `WRONGPASS` errors
-2. **CPU Starvation** — Deploy with 5m CPU limit; SRE Agent correlates throttling with resource limits
-3. **OOM Kill** — Deploy with 20Mi memory limit; SRE Agent finds OOMKilled events and recommends limits
-4. **CrashLoop** — Deploy with bad entrypoint; SRE Agent reads container logs to identify `MODULE_NOT_FOUND`
+This repo now includes **11 demo scenarios** covering both obvious failures and more subtle misconfigurations:
+
+1. **Redis Credential Expiry** — bad Redis password, readiness degradation
+2. **CPU Starvation** — tiny CPU limits, throttling, restarts
+3. **OOM Kill** — memory limit too low for Node.js startup
+4. **CrashLoop** — invalid entrypoint / immediate container failure
+5. **ImagePullBackOff** — broken image tag
+6. **Pending Pods** — unschedulable workloads due to oversized requests
+7. **Probe Failure** — liveness/readiness paths misconfigured
+8. **Missing ConfigMap** — CreateContainerConfigError from missing config reference
+9. **Service Selector Mismatch** — healthy pods, zero service endpoints
+10. **Network Block** — deny-all egress isolates the app from Redis
+11. **MongoDB Down** — in-cluster MongoDB scaled to 0, order-processor cascading failure
+
+These additional scenarios make the demo better for showing that SRE Agent can handle not just crashes, but also scheduling, service wiring, config drift, and network policy issues.
 
 ## Prerequisites
 
@@ -87,14 +98,40 @@ curl "http://${APP_IP}/health"
 
 ## Demo Scenarios
 
-| # | Scenario | Fault | Key Alerts | SRE Agent Action |
-|---|----------|-------|------------|------------------|
-| 1 | Redis Credential Expiry | Wrong Redis password | Redis Errors, Probes, NotReady | Identifies WRONGPASS, suggests secret update |
-| 2 | CPU Starvation | 5m CPU limit | High CPU, Restarts, BackOff | Correlates throttling with resource limits |
-| 3 | OOM Kill | 20Mi memory limit | OOMKilled, Restarts, BackOff | Finds OOMKill events, recommends limit increase |
-| 4 | CrashLoop | Bad entrypoint | Errors, Restarts, BackOff | Reads logs, identifies MODULE_NOT_FOUND |
+| # | Scenario | Fault | Key Signals | SRE Agent Action |
+|---|----------|-------|-------------|------------------|
+| 1 | Redis Credential Expiry | Wrong Redis password | Redis errors, readiness failures | Finds WRONGPASS and points to secret drift |
+| 2 | CPU Starvation | 5m CPU limit | Throttling, restarts, backoff | Correlates resource limits to startup failures |
+| 3 | OOM Kill | 20Mi memory limit | OOMKilled, restarts | Recommends higher memory limits |
+| 4 | CrashLoop | Bad entrypoint | Container errors, restarts | Reads logs, identifies bad command |
+| 5 | ImagePullBackOff | Non-existent image tag | Failed pulls, ImagePullBackOff | Finds invalid image reference |
+| 6 | Pending Pods | 32Gi / 8 CPU requests | FailedScheduling, Pending pods | Compares requests vs cluster capacity |
+| 7 | Probe Failure | Bad health probe paths | Probe failures, restarts | Identifies broken probe config |
+| 8 | Missing ConfigMap | Invalid envFrom reference | CreateContainerConfigError | Finds missing config object |
+| 9 | Service Mismatch | Wrong selector labels | No endpoints, failed requests | Compares selector vs pod labels |
+| 10 | Network Block | Deny-all egress policy | Redis errors, degraded readiness | Detects restrictive NetworkPolicy |
+| 11 | MongoDB Down | MongoDB scaled to 0 | Order-processor NotReady, connection errors | Traces cascading failure to 0-replica MongoDB |
 
 See [docs/03-demo-scenarios.md](docs/03-demo-scenarios.md) for detailed walkthroughs.
+
+## Fault Injection
+
+```bash
+# Inject a fault
+./scripts/inject-fault.sh <number> [redis-host]
+
+# Examples
+./scripts/inject-fault.sh 1 $(cd terraform && terraform output -raw redis_hostname)
+./scripts/inject-fault.sh 5
+./scripts/inject-fault.sh 9
+
+# Restore to healthy state
+RG=$(cd terraform && terraform output -raw resource_group_name)
+REDIS=$(cd terraform && terraform output -raw redis_name)
+./scripts/restore.sh "$RG" "$REDIS"
+```
+
+> The inject script now captures the currently healthy image before mutating the deployment, so restore can safely recover even from `ImagePullBackOff` scenarios.
 
 ## Documentation
 

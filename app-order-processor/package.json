@@ -1,0 +1,28 @@
+{
+  "name": "order-processor",
+  "version": "1.0.0",
+  "description": "Order processing service backed by MongoDB — used for SRE Agent demo (cascading dependency failure)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "keywords": ["aks", "mongodb", "azure", "kubernetes", "sre"],
+  "author": "Azure SRE Team",
+  "license": "MIT",
+  "dependencies": {
+    "applicationinsights": "^2.9.5",
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2",
+    "mongodb": "^6.5.0",
+    "pino": "^8.17.2",
+    "pino-http": "^9.0.0",
+    "uuid": "^9.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
