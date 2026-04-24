@@ -10,6 +10,7 @@ RUN npm ci --only=production
 
 # Copy source code
 COPY src/ ./src/
+COPY public/ ./public/
 
 # Production image
 FROM node:20-alpine
@@ -23,6 +24,7 @@ RUN addgroup -g 1001 -S nodejs && \
 # Copy from builder
 COPY --from=builder --chown=nodejs:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=nodejs:nodejs /app/src ./src
+COPY --from=builder --chown=nodejs:nodejs /app/public ./public
 COPY --from=builder --chown=nodejs:nodejs /app/package.json ./
 
 # Set environment variables
