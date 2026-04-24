@@ -78,7 +78,21 @@ When investigating:
 > kubectl get svc aks-journal -n aks-journal-app -o jsonpath='{.status.loadBalancer.ingress[0].ip}'
 > ```
 
-## Step 5: Verify the Agent is Working
+## Step 5: Add Persistent Lab Instructions (Recommended)
+
+In the SRE Agent portal, go to:
+
+**Builder → Knowledge sources**
+
+Upload this file from the repo:
+
+```text
+docs/05-sre-agent-knowledge.md
+```
+
+This gives the agent persistent lab-specific guidance, including the preferred AKS write-remediation path and known incident patterns.
+
+## Step 6: Verify the Agent is Working
 
 Ask the agent:
 
@@ -92,7 +106,7 @@ Expected response:
 - Probes: /ready and /live returning 200
 - Resources: CPU and memory within normal limits
 
-## Step 6: Configure Action Group Webhook (Optional)
+## Step 7: Configure Action Group Webhook (Optional)
 
 To get real-time incident creation when Azure Monitor alerts fire:
 
@@ -101,7 +115,7 @@ To get real-time incident creation when Azure Monitor alerts fire:
 3. Add a **Webhook** receiver with the URL provided by SRE Agent
 4. Save
 
-## Step 7: Add GitHub Connector (Optional)
+## Step 8: Add GitHub Connector (Optional)
 
 To let SRE Agent create GitHub issues or PRs for incidents:
 
