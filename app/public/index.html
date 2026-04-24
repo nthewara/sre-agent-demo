@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Journal · AKS SRE Demo</title>
+<style>
+  :root {
+    --bg: #0b1020;
+    --panel: #111936;
+    --panel-2: #1a2351;
+    --text: #e6eaf5;
+    --muted: #8b93b7;
+    --accent: #7c5cff;
+    --accent-2: #00c2ff;
+    --green: #1ecb78;
+    --red: #ff5470;
+    --amber: #ffb547;
+    --border: rgba(255,255,255,0.08);
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: radial-gradient(1200px 600px at 20% -10%, #1a1f5c 0%, transparent 60%),
+                radial-gradient(900px 500px at 120% 10%, #0e4a6b 0%, transparent 60%),
+                var(--bg);
+    color: var(--text);
+  }
+  header {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 20px 32px; border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(8px);
+    position: sticky; top: 0; z-index: 10;
+    background: rgba(11,16,32,0.7);
+  }
+  .brand { display: flex; align-items: center; gap: 12px; font-weight: 600; font-size: 18px; }
+  .brand .logo {
+    width: 32px; height: 32px; border-radius: 8px;
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    display: grid; place-items: center; font-weight: 700;
+  }
+  .status-bar { display: flex; gap: 14px; align-items: center; font-size: 13px; }
+  .pill {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 12px; border-radius: 999px; border: 1px solid var(--border);
+    background: rgba(255,255,255,0.03);
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+  .dot.ok { background: var(--green); box-shadow: 0 0 10px var(--green); }
+  .dot.bad { background: var(--red); box-shadow: 0 0 10px var(--red); }
+  .dot.warn { background: var(--amber); box-shadow: 0 0 10px var(--amber); }
+
+  main { max-width: 1100px; margin: 0 auto; padding: 32px; }
+  h1 { font-size: 28px; margin: 0 0 6px; }
+  .sub { color: var(--muted); margin-bottom: 24px; }
+
+  .grid { display: grid; grid-template-columns: 1fr 1.2fr; gap: 24px; }
+  @media (max-width: 900px) { .grid { grid-template-columns: 1fr; } }
+
+  .card {
+    background: linear-gradient(180deg, var(--panel), rgba(17,25,54,0.6));
+    border: 1px solid var(--border); border-radius: 14px;
+    padding: 20px; box-shadow: 0 8px 40px rgba(0,0,0,0.2);
+  }
+  .card h2 { margin: 0 0 14px; font-size: 16px; letter-spacing: 0.3px; }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin: 12px 0 4px; }
+  input, textarea, select {
+    width: 100%; padding: 10px 12px; border-radius: 8px;
+    background: #0d1430; color: var(--text); border: 1px solid var(--border);
+    font-size: 14px; font-family: inherit;
+  }
+  textarea { min-height: 90px; resize: vertical; }
+  input:focus, textarea:focus, select:focus {
+    outline: none; border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(124,92,255,0.2);
+  }
+
+  .row { display: flex; gap: 10px; }
+  .row > * { flex: 1; }
+
+  button {
+    background: linear-gradient(135deg, var(--accent), var(--accent-2));
+    color: white; border: 0; padding: 10px 18px; border-radius: 8px;
+    font-weight: 600; cursor: pointer; font-size: 14px;
+    transition: transform 0.1s, box-shadow 0.2s;
+  }
+  button:hover { transform: translateY(-1px); box-shadow: 0 6px 20px rgba(124,92,255,0.3); }
+  button:active { transform: translateY(0); }
+  button.ghost {
+    background: transparent; border: 1px solid var(--border); color: var(--text);
+  }
+  button.danger { background: linear-gradient(135deg, #ff5470, #ff8bb0); }
+
+  .entry {
+    padding: 14px; border-radius: 10px; background: rgba(255,255,255,0.02);
+    border: 1px solid var(--border); margin-bottom: 10px;
+  }
+  .entry h3 { margin: 0 0 6px; font-size: 15px; }
+  .entry .meta { font-size: 12px; color: var(--muted); display: flex; gap: 12px; margin-bottom: 8px; }
+  .entry .content { font-size: 14px; color: #cbd1ee; white-space: pre-wrap; }
+  .mood { display: inline-block; padding: 2px 8px; border-radius: 6px; font-size: 11px; background: rgba(124,92,255,0.2); }
+  .empty { color: var(--muted); text-align: center; padding: 30px; font-size: 14px; }
+
+  .metrics { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .metric {
+    background: rgba(255,255,255,0.03); padding: 12px; border-radius: 10px;
+    border: 1px solid var(--border);
+  }
+  .metric .label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.5px; }
+  .metric .value { font-size: 18px; font-weight: 600; margin-top: 4px; }
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    padding: 12px 18px; border-radius: 10px;
+    background: var(--panel-2); border: 1px solid var(--border);
+    transform: translateY(100px); opacity: 0; transition: all 0.3s;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.error { border-color: var(--red); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">
+    <div class="logo">J</div>
+    <span>Journal · AKS SRE Demo</span>
+  </div>
+  <div class="status-bar">
+    <span class="pill"><span id="dot-health" class="dot"></span><span id="txt-health">checking…</span></span>
+    <span class="pill"><span id="dot-redis" class="dot"></span><span id="txt-redis">redis</span></span>
+    <span class="pill" id="pill-uptime">uptime —</span>
+  </div>
+</header>
+
+<main>
+  <h1>My Journal</h1>
+  <p class="sub">A tiny Node.js + Redis app running on AKS. Break something and watch SRE Agent diagnose it.</p>
+
+  <div class="grid">
+    <!-- Left: New entry + metrics -->
+    <div>
+      <div class="card">
+        <h2>New entry</h2>
+        <label>User ID</label>
+        <input id="userId" value="demo-user" />
+
+        <label>Title</label>
+        <input id="title" placeholder="How I feel today…" />
+
+        <label>Mood</label>
+        <select id="mood">
+          <option value="happy">😊 happy</option>
+          <option value="neutral" selected>😐 neutral</option>
+          <option value="tired">😴 tired</option>
+          <option value="stressed">😰 stressed</option>
+          <option value="excited">🎉 excited</option>
+        </select>
+
+        <label>Content</label>
+        <textarea id="content" placeholder="Write something…"></textarea>
+
+        <label>Tags (comma-separated)</label>
+        <input id="tags" placeholder="work, kubernetes, demo" />
+
+        <div style="margin-top: 16px;">
+          <button onclick="createEntry()">+ Add entry</button>
+          <button class="ghost" onclick="loadEntries()">↻ Refresh</button>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top: 20px;">
+        <h2>Live metrics</h2>
+        <div class="metrics">
+          <div class="metric"><div class="label">Uptime</div><div class="value" id="m-uptime">—</div></div>
+          <div class="metric"><div class="label">Memory</div><div class="value" id="m-mem">—</div></div>
+          <div class="metric"><div class="label">Entries</div><div class="value" id="m-entries">—</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: Entries list -->
+    <div>
+      <div class="card">
+        <h2>Entries for <span id="label-user">demo-user</span></h2>
+        <div id="entries"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+  </div>
+</main>
+
+<div id="toast" class="toast"></div>
+
+<script>
+const apiBase = '';
+
+function toast(msg, isError = false) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.className = 'toast show' + (isError ? ' error' : '');
+  setTimeout(() => t.className = 'toast' + (isError ? ' error' : ''), 2800);
+}
+
+async function pollHealth() {
+  try {
+    const r = await fetch('/health');
+    const d = await r.json();
+    document.getElementById('dot-health').className = 'dot ' + (r.ok ? 'ok' : 'bad');
+    document.getElementById('txt-health').textContent = d.status;
+    const redisOk = d.checks && d.checks.redis === 'connected';
+    document.getElementById('dot-redis').className = 'dot ' + (redisOk ? 'ok' : 'bad');
+    document.getElementById('txt-redis').textContent = 'redis ' + (d.checks?.redis || 'unknown');
+  } catch (e) {
+    document.getElementById('dot-health').className = 'dot bad';
+    document.getElementById('txt-health').textContent = 'offline';
+    document.getElementById('dot-redis').className = 'dot bad';
+    document.getElementById('txt-redis').textContent = 'redis disconnected';
+  }
+}
+
+async function pollMetrics() {
+  try {
+    const r = await fetch('/metrics');
+    const d = await r.json();
+    const up = Math.floor(d.uptime);
+    const h = Math.floor(up / 3600), m = Math.floor((up % 3600) / 60), s = up % 60;
+    document.getElementById('m-uptime').textContent = `${h}h ${m}m ${s}s`;
+    document.getElementById('pill-uptime').textContent = `up ${h}h ${m}m`;
+    document.getElementById('m-mem').textContent = (d.memoryUsage.heapUsed / 1024 / 1024).toFixed(1) + ' MB';
+  } catch (e) { /* ignore */ }
+}
+
+function getUserId() { return document.getElementById('userId').value.trim() || 'demo-user'; }
+
+async function createEntry() {
+  const userId = getUserId();
+  const payload = {
+    title: document.getElementById('title').value.trim(),
+    content: document.getElementById('content').value.trim(),
+    mood: document.getElementById('mood').value,
+    tags: document.getElementById('tags').value.split(',').map(t => t.trim()).filter(Boolean)
+  };
+  if (!payload.title || !payload.content) {
+    toast('Title and content required', true); return;
+  }
+  try {
+    const r = await fetch(`/api/journals/${userId}`, {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify(payload)
+    });
+    if (!r.ok) { toast('Create failed: ' + r.status, true); return; }
+    document.getElementById('title').value = '';
+    document.getElementById('content').value = '';
+    document.getElementById('tags').value = '';
+    toast('Entry added');
+    loadEntries();
+  } catch (e) { toast('Network error: ' + e.message, true); }
+}
+
+async function deleteEntry(id) {
+  const userId = getUserId();
+  if (!confirm('Delete this entry?')) return;
+  const r = await fetch(`/api/journals/${userId}/${id}`, { method: 'DELETE' });
+  if (r.ok) { toast('Deleted'); loadEntries(); }
+  else toast('Delete failed', true);
+}
+
+async function loadEntries() {
+  const userId = getUserId();
+  document.getElementById('label-user').textContent = userId;
+  const container = document.getElementById('entries');
+  try {
+    const r = await fetch(`/api/journals/${userId}`);
+    if (!r.ok) {
+      container.innerHTML = `<div class="empty">Error ${r.status}</div>`;
+      return;
+    }
+    const d = await r.json();
+    document.getElementById('m-entries').textContent = d.entries.length;
+    if (!d.entries.length) {
+      container.innerHTML = '<div class="empty">No entries yet. Add one on the left →</div>';
+      return;
+    }
+    // Fetch each entry's full content
+    const full = await Promise.all(d.entries.map(async e => {
+      try {
+        const r = await fetch(`/api/journals/${userId}/${e.id}`);
+        return r.ok ? await r.json() : e;
+      } catch { return e; }
+    }));
+    container.innerHTML = full.map(e => `
+      <div class="entry">
+        <h3>${escapeHtml(e.title || '(no title)')}</h3>
+        <div class="meta">
+          <span class="mood">${escapeHtml(e.mood || 'neutral')}</span>
+          <span>${new Date(e.updatedAt || e.createdAt).toLocaleString()}</span>
+          ${(e.tags && e.tags.length) ? '<span>#' + e.tags.map(escapeHtml).join(' #') + '</span>' : ''}
+        </div>
+        <div class="content">${escapeHtml(e.content || '')}</div>
+        <div style="margin-top: 10px;"><button class="ghost" onclick="deleteEntry('${e.id}')">Delete</button></div>
+      </div>
+    `).join('');
+  } catch (e) {
+    container.innerHTML = `<div class="empty">Unable to load entries (${escapeHtml(e.message)})</div>`;
+  }
+}
+
+function escapeHtml(s) {
+  return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+document.getElementById('userId').addEventListener('change', loadEntries);
+
+// Initial load + polling
+pollHealth(); pollMetrics(); loadEntries();
+setInterval(pollHealth, 5000);
+setInterval(pollMetrics, 5000);
+</script>
+
+</body>
+</html>

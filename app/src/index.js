@@ -14,6 +14,7 @@ if (process.env.APPLICATIONINSIGHTS_CONNECTION_STRING) {
 }
 
 const express = require('express');
+const path = require('path');
 const pinoHttp = require('pino-http');
 const { v4: uuidv4 } = require('uuid');
 const logger = require('./logger');
@@ -25,6 +26,9 @@ const PORT = process.env.PORT || 3000;
 // Middleware
 app.use(express.json());
 app.use(pinoHttp({ logger }));
+
+// Serve static UI from /public
+app.use(express.static(path.join(__dirname, '..', 'public')));
 
 // Health check endpoints
 app.get('/health', async (req, res) => {
